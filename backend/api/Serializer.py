@@ -51,7 +51,6 @@ class CaseSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'reporter',
-            'created_by',
             'case_type',
             'status',
             'location',

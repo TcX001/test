@@ -58,7 +58,6 @@ class Case(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_cases')
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_cases')
     case_type = models.ForeignKey(CaseType, on_delete=models.SET_NULL, null=True)
     status = models.ForeignKey(CaseStatus, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -82,11 +82,11 @@ const usersItems = usersByRole.map(role => {
   };
 });
 
-  const casesItems = todayCasesByStatus.map(status => {
-    console.log(status)
+  const casesItems = todayCasesByStatus.map(items => {
+    console.log(items)
   return {
-    key: status,
-    value: status ? status.count : 0,
+    key: items.status,
+    value: items ? items.count : 0,
   };
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Typography,
   TextField,
@@ -22,212 +22,133 @@ import {
   LocationOn as LocationOnIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
-import {createCase} from '../../services/caseService'; // import service
+import { createCase, getCaseTypes } from '../../services/caseService';
 
 const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
   position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
   width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0,0,0,0)',
 });
 
-const caseTypes = [
-  'ร้องเรียน',
-  'ขอความช่วยเหลือ',
-  'แจ้งเหตุฉุกเฉิน',
-  'เสนอแนะ',
-  'อื่นๆ'
-];
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  borderRadius: theme.shape.borderRadius * 2,
+  backgroundColor: '#f9f9f9',
+}));
 
 const NewCaseForm = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    caseType: '',
-    caseTitle: '',
-    description: '',
-    location: '',
-    images: []
-  });
-  
+  const [formData, setFormData] = useState({ caseType: '', caseTitle: '', description: '', location: '', images: [] });
+  const [caseTypes, setCaseTypes] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  const handleFormChange = (e) => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const types = await getCaseTypes();
+        setCaseTypes(types);
+      } catch {
+        setSnackbar({ open: true, message: 'โหลดประเภทเคสไม่สำเร็จ', severity: 'error' });
+      }
+    })();
+  }, []);
+
+  const handleFormChange = e => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, ...files],
-      }));
+  const handleFileChange = e => {
+    if (e.target.files) {
+      setFormData(prev => ({ ...prev, images: [...prev.images, ...Array.from(e.target.files)] }));
     }
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+  const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
   const validateForm = () => {
-    // Check required fields
-    if (!formData.name || !formData.caseType || !formData.caseTitle || !formData.description || !formData.location) {
-      setSnackbar({
-        open: true,
-        message: 'กรุณากรอกข้อมูลให้ครบถ้วน',
-        severity: 'error'
-      });
+    if (!formData.caseType || !formData.caseTitle || !formData.description || !formData.location) {
+      setSnackbar({ open: true, message: 'กรุณากรอกข้อมูลให้ครบถ้วน', severity: 'error' });
       return false;
     }
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-    
     setIsSubmitting(true);
 
-    try {
-      const data = new FormData();
-      data.append('name', formData.name);
-      data.append('caseType', formData.caseType);
-      data.append('caseTitle', formData.caseTitle);
-      data.append('description', formData.description);
-      data.append('location', formData.location);
-      
-      formData.images.forEach((file) => {
-        data.append('images', file);
-      });
-      
-      // Check if createCase is a function or an object with createCase method
-      const submitFunc = typeof createCase === 'function' 
-        ? createCase 
-        : createCase.createCase;
-        
-      const response = await submitFunc(data);
-      console.log('Success response:', response);
-      
-      setSnackbar({
-        open: true,
-        message: 'เคสของคุณถูกส่งเรียบร้อยแล้ว',
-        severity: 'success'
-      });
-      
-      // Reset form
-      setFormData({
-        name: '',
-        caseType: '',
-        caseTitle: '',
-        description: '',
-        location: '',
-        images: [],
-      });
-    } catch (error) {
-      console.error('Submission error:', error);
-      setSnackbar({
-        open: true,
-        message: 'เกิดข้อผิดพลาดในการส่งข้อมูล: ' + (error.message || 'Unknown error'),
-        severity: 'error'
-      });
-    } finally {
-      setIsSubmitting(false);
+try {
+  const data = new FormData();
+
+  // ดึง id จาก localStorage สมมติชื่อ key เป็น 'userId'
+  const userId = localStorage.getItem('id');
+  if (userId) {
+    data.append('userId', userId);
+  }
+
+  Object.entries(formData).forEach(([key, val]) => {
+    if (key === 'images') {
+      val.forEach(file => data.append('images', file));
+    } else {
+      data.append(key, val);
     }
+  });
+
+  await createCase(data);
+  setSnackbar({ open: true, message: 'เคสของคุณถูกส่งเรียบร้อยแล้ว', severity: 'success' });
+  setFormData({ caseType: '', caseTitle: '', description: '', location: '', images: [] });
+} catch (error) {
+  setSnackbar({ open: true, message: `เกิดข้อผิดพลาด: ${error.message}`, severity: 'error' });
+} finally {
+  setIsSubmitting(false);
+}
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
-      <Typography variant="h5" gutterBottom fontWeight="bold" color="primary">
+    <StyledPaper elevation={0}>
+      <Typography variant="h4" gutterBottom color="primary">
         แจ้งเคสใหม่
       </Typography>
 
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="ชื่อผู้แจ้ง"
-              name="name"
-              value={formData.name}
-              onChange={handleFormChange}
-              fullWidth
-              required
-              variant="outlined"
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth required>
+        <Grid container spacing={2} alignItems="center" wrap="wrap">
+          <Grid item xs="auto">
+            <FormControl sx={{ minWidth: 160 }} required>
               <InputLabel id="case-type-label">ประเภทเคส</InputLabel>
-              <Select
-                labelId="case-type-label"
-                name="caseType"
-                value={formData.caseType}
-                onChange={handleFormChange}
-                label="ประเภทเคส"
-              >
-                {caseTypes.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {type}
-                  </MenuItem>
+              <Select labelId="case-type-label" name="caseType" value={formData.caseType} onChange={handleFormChange} label="ประเภทเคส">
+                {caseTypes.map(type => (
+                  <MenuItem key={type.id} value={type.id}>{type.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
 
-          <Grid item xs={12}>
-            <TextField
-              label="ชื่อเคส"
-              name="caseTitle"
-              value={formData.caseTitle}
-              onChange={handleFormChange}
-              fullWidth
-              required
-              variant="outlined"
-            />
+          <Grid item xs={3}>
+            <TextField fullWidth required label="ชื่อเคส" name="caseTitle" value={formData.caseTitle} onChange={handleFormChange} />
           </Grid>
 
-          <Grid item xs={12}>
-            <TextField
-              label="รายละเอียด"
-              name="description"
-              value={formData.description}
-              onChange={handleFormChange}
-              fullWidth
-              required
-              multiline
-              rows={4}
-              variant="outlined"
-            />
+          <Grid item xs={4}>
+            <TextField fullWidth required multiline rows={3} label="รายละเอียด" name="description" value={formData.description} onChange={handleFormChange} />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid item xs={3}>
             <TextField
+              fullWidth
+              required
               label="สถานที่"
               name="location"
               value={formData.location}
               onChange={handleFormChange}
-              fullWidth
-              required
-              variant="outlined"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton edge="end">
+                    <IconButton>
                       <LocationOnIcon color="primary" />
                     </IconButton>
                   </InputAdornment>
@@ -236,55 +157,31 @@ const NewCaseForm = () => {
             />
           </Grid>
 
-          <Grid item xs={12}>
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={<CloudUploadIcon />}
-            >
+          <Grid item xs="auto">
+            <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />} sx={{ textTransform: 'none' }}>
               อัปโหลดรูปภาพ
-              <VisuallyHiddenInput
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileChange}
-              />
+              <VisuallyHiddenInput type="file" multiple accept="image/*" onChange={handleFileChange} />
             </Button>
+          </Grid>
 
+          <Grid item xs={12}>
             {formData.images.length > 0 && (
-              <Box mt={2} display="flex" gap={1} flexWrap="wrap">
-                {formData.images.map((img, index) => (
-                  <Avatar
-                    key={index}
-                    variant="rounded"
-                    src={URL.createObjectURL(img)}
-                    sx={{ width: 64, height: 64 }}
-                    alt={`uploaded-${index}`}
-                  />
+              <Box display="flex" gap={1} flexWrap="wrap">
+                {formData.images.map((img, i) => (
+                  <Avatar key={i} variant="rounded" src={URL.createObjectURL(img)} sx={{ width: 72, height: 72 }} />
                 ))}
               </Box>
             )}
           </Grid>
 
-          <Grid item xs={12} display="flex" justifyContent="flex-end">
+          <Grid item xs={12} textAlign="right">
             <Button
-              variant="contained"
               type="submit"
-              color="primary"
-              size="large"
+              variant="contained"
               endIcon={<SendIcon />}
+              size="large"
+              sx={{ px: 4, py: 1.5, borderRadius: 3, boxShadow: 2 }}
               disabled={isSubmitting}
-              sx={{
-                px: 4,
-                py: 1.5,
-                borderRadius: 2,
-                boxShadow: 3,
-                '&:hover': {
-                  boxShadow: 5,
-                  transform: 'translateY(-2px)',
-                },
-                transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
             >
               {isSubmitting ? 'กำลังส่ง...' : 'ส่งเคส'}
             </Button>
@@ -292,21 +189,10 @@ const NewCaseForm = () => {
         </Grid>
       </form>
 
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
-    </Paper>
+    </StyledPaper>
   );
 };
 

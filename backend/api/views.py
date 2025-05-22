@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate, login
 from api.Serializer import UserSerializer, RoleSerializer, CaseSerializer, CaseSerializer, UserSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils.dateparse import parse_datetime,parse_date
-from api.models import Case, User, Role
+from api.models import Case, User, Role, CaseType
 from rest_framework import generics, status
 from django.contrib.auth.password_validation import validate_password, ValidationError as DjangoValidationError
 from rest_framework.authentication import SessionAuthentication
@@ -55,7 +55,6 @@ class UserListView(APIView):
         return Response(serializer.data)
     
 class CaseCreateAPIView(APIView):
-    permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
     
     def post(self, request):
@@ -63,28 +62,20 @@ class CaseCreateAPIView(APIView):
             print(f"Request data: {request.data}")
             print(f"User authenticated: {request.user.is_authenticated}")
             print(f"User: {request.user}")
-            
-            # Check if user is authenticated
-            if not request.user.is_authenticated:
-                return Response(
-                    {"message": "Authentication required", "error": "User not authenticated"},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-            
+            print(request.data.get('caseType'))
+            print( request.data.get('description'))
             # Handle multiple images
             images = request.FILES.getlist('images', [])
             print(f"Images received: {len(images)}")
             
-            # Create serializer data
             serializer_data = {
                 'title': request.data.get('caseTitle'),
                 'description': request.data.get('description'),
-                'reporter': request.data.get('reporter', 4),  # Use from request or default
+                'reporter': int(request.data.get('userId')),  # Use from request or default
                 'location': request.data.get('location'),
-                'created_by': request.user.id,  # Use authenticated user
                 'status': request.data.get('status', 1),  # Default status
                 'images': images,
-                'case_type': request.data.get('case_type', 1),
+                'case_type': int(request.data.get('caseType')),
             }
             
             print(f"Serializer data: {serializer_data}")
@@ -281,6 +272,6 @@ class TodayCasesByStatusView(APIView):
     
 class CasetyView(APIView):
     def get(self, request):
-        roles = Role.objects.all()
+        roles = CaseType.objects.all()
         serializer = RoleSerializer(roles, many=True)
         return Response(serializer.data)

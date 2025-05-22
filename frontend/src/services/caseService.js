@@ -56,3 +56,8 @@ export const exportSelectedColumns = async (columns, start, end) => {
   const response = await axios.post(`${API_URL}/case/export/`, payload);
   return response.data;
 };
+
+export const getCaseTypes = async () => {
+  const response = await axios.get(`${API_URL}/case/type`);
+  return response.data;
+};
