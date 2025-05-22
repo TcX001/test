@@ -1,0 +1,15 @@
+# Use the specified Node.js Alpine image
+FROM node:lts-alpine3.20
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci --quiet
+
+COPY . .
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
