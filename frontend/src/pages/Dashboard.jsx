@@ -24,13 +24,14 @@ import StatCard from '../components/StatCard/StatCard';
 import ListSection from '../components/ListSection/ListSection';
 
 import { useNavigate } from 'react-router-dom'; // import for navigation
-import { fetchUsersData, fetchCasesData } from '../services/info'; // Adjust path if needed
+import { fetchUsersData, fetchCasesData, fetchCasesTypeData } from '../services/info'; // Adjust path if needed
 
 const Dashboard = () => {
   const navigate = useNavigate(); // hook for navigation
 
   const [usersByRole, setUsersByRole] = useState([]); 
   const [todayCasesByStatus, setTodayCasesByStatus] = useState([]);
+  const [todayCasesByType, setTodayCasesByType] = useState([]);
 
   // Optional: Add loading and error states for better UX
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +50,10 @@ const Dashboard = () => {
         const casesData = await fetchCasesData();
         console.log(casesData.todayCasesByStatus)
         setTodayCasesByStatus(casesData.todayCasesByStatus);
+
+        const casesTypeData = await fetchCasesTypeData();
+        console.log(casesTypeData.todayCasesByType)
+        setTodayCasesByType(casesTypeData.todayCasesByType);
 
 
       } catch (err) {
@@ -90,6 +95,14 @@ const usersItems = usersByRole.map(role => {
   };
 });
 
+
+  const casestypeItems = todayCasesByType.map(items => {
+    console.log(items)
+  return {
+    key: items.type,
+    value: items ? items.count : 0,
+  };
+});
 
 
   if (isLoading) {
@@ -154,8 +167,10 @@ const usersItems = usersByRole.map(role => {
               <ListSection title="ผู้ใช้งานแยกตามบทบาท" items={usersItems} />
             </Grid>
             <Grid item xs={12} md={6}>
-              {/* This section specifically shows TODAY'S cases */}
               <ListSection title={`เคสของวันนี้ (${totalTodayCases} รายการ)`} items={casesItems} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <ListSection title={`เคสแยกตามประเภทของวันนี้`} items={casestypeItems} />
             </Grid>
           </Grid>
         </Paper>

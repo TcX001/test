@@ -1,5 +1,5 @@
 from django.urls import path
-from api.views import HelloWorldView,UserListView,LoginView,CaseCreateAPIView,CaseListView,CaseColumns,ExportSelectedColumns,ForgotPasswordView,ResetPasswordView,UserCreateView,RoleView,UsersByRoleView,TodayCasesByStatusView,CasetyView
+from api.views import HelloWorldView,UserListView,LoginView,CaseCreateAPIView,CaseListView,CaseColumns,ExportSelectedColumns,ForgotPasswordView,ResetPasswordView,UserCreateView,RoleView,UsersByRoleView,TodayCasesByStatusView,CasetyView,TodayCasesByTypeView
 
 
 urlpatterns = [
@@ -17,5 +17,7 @@ urlpatterns = [
     path('cases/today-by-status/', TodayCasesByStatusView.as_view(), name='today-cases-by-status'),
     path('users/by-role/', UsersByRoleView.as_view(), name='users-by-role'),
     path('case/type/', CasetyView.as_view(), name='-case_ty'),
+    path('cases/today-by-type/', TodayCasesByTypeView.as_view(), name='today-cases-by-type'),
+
 ]
 

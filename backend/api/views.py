@@ -270,6 +270,28 @@ class TodayCasesByStatusView(APIView):
         ]
         return Response({"todayCasesByStatus": result})
     
+class TodayCasesByTypeView(APIView):
+    def get(self, request):
+        today = now().date()
+        
+        cases_today = (
+            Case.objects
+                .filter(created_at__date=today)
+                .values('case_type__name')  # use 'case_type' as per your model
+                .annotate(count=Count('id'))
+                .order_by('case_type__name')
+        )
+
+        result = [
+            {
+                "type": item["case_type__name"] or "Unknown",
+                "count": item["count"]
+            }
+            for item in cases_today
+        ]
+
+        return Response({"todayCasesByType": result})
+    
 class CasetyView(APIView):
     def get(self, request):
         roles = CaseType.objects.all()
